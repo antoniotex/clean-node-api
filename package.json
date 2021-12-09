@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "prepare": "husky install"
   },
   "lint-staged": {
@@ -31,6 +31,7 @@
   "homepage": "https://github.com/antoniotex/clean-node-api#readme",
   "devDependencies": {
     "husky": "^7.0.4",
+    "jest": "^27.4.3",
     "lint-staged": "^12.1.2",
     "standard": "^16.0.4"
   }
