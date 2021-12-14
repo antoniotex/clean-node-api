@@ -209,6 +209,17 @@ describe('Auth UseCase', () => {
         loadUserByEmailRepository: makeLoadUserByEmailRepository(),
         encrypter: makeEncrypter(),
         tokenGenerator: invalid
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+        encrypter: makeEncrypter(),
+        tokenGenerator: makeTokenGenerator()
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+        encrypter: makeEncrypter(),
+        tokenGenerator: makeTokenGenerator(),
+        updateAccessTokenRepository: invalid
       })
     )
     for (const sut of suts) {
