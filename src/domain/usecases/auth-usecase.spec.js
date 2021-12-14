@@ -1,4 +1,4 @@
-const { MissingParamError, InvalidParamError } = require('../../utils/errors')
+const { MissingParamError } = require('../../utils/errors')
 const AuthUseCase = require('./auth-usecase')
 
 const makeEncrypter = () => {
@@ -15,7 +15,16 @@ const makeEncrypter = () => {
   return encrypterSpy
 }
 
-const maketokenGenerator = () => {
+const makeEncrypterWithError = () => {
+  class EncrypterSpy {
+    async compare () {
+      throw new Error()
+    }
+  }
+  return new EncrypterSpy()
+}
+
+const makeTokenGenerator = () => {
   class TokenGeneradorSpy {
     async generate (userId) {
       this.userId = userId
@@ -26,6 +35,15 @@ const maketokenGenerator = () => {
   const tokenGeneradorSpy = new TokenGeneradorSpy()
   tokenGeneradorSpy.accessToken = 'any_token'
   return tokenGeneradorSpy
+}
+
+const makeTokenGeneratorWithError = () => {
+  class TokenGeneradorSpy {
+    async generate () {
+      throw new Error()
+    }
+  }
+  return new TokenGeneradorSpy()
 }
 
 const makeLoadUserByEmailRepository = () => {
@@ -44,10 +62,19 @@ const makeLoadUserByEmailRepository = () => {
   return loadUserByEmailRepositorySpy
 }
 
+const makeLoadUserByEmailRepositoryWithError = () => {
+  class LoadUserByEmailRepositorySpy {
+    async load () {
+      throw new Error()
+    }
+  }
+  return new LoadUserByEmailRepositorySpy()
+}
+
 const makeSut = () => {
   const loadUserByEmailRepositorySpy = makeLoadUserByEmailRepository()
   const encrypterSpy = makeEncrypter()
-  const tokenGeneratorSpy = maketokenGenerator()
+  const tokenGeneratorSpy = makeTokenGenerator()
 
   const sut = new AuthUseCase({
     loadUserByEmailRepository: loadUserByEmailRepositorySpy,
@@ -81,23 +108,23 @@ describe('Auth UseCase', () => {
     expect(loadUserByEmailRepositorySpy.email).toBe('any_email@mail.com')
   })
 
-  test('should throw if no dependency is provided', async () => {
-    const sut = new AuthUseCase()
-    const promise = sut.auth('any_email@mail.com', 'any_password')
-    expect(promise).rejects.toThrow(new MissingParamError('loadUserByEmailRepository'))
-  })
+  //   test('should throw if no dependency is provided', async () => {
+  //     const sut = new AuthUseCase()
+  //     const promise = sut.auth('any_email@mail.com', 'any_password')
+  //     expect(promise).rejects.toThrow(new MissingParamError('loadUserByEmailRepository'))
+  //   })
 
-  test('should throw if no LoadUserByEmailRepository is provided', async () => {
-    const sut = new AuthUseCase({})
-    const promise = sut.auth('any_email@mail.com', 'any_password')
-    expect(promise).rejects.toThrow(new MissingParamError('loadUserByEmailRepository'))
-  })
+  //   test('should throw if no LoadUserByEmailRepository is provided', async () => {
+  //     const sut = new AuthUseCase({})
+  //     const promise = sut.auth('any_email@mail.com', 'any_password')
+  //     expect(promise).rejects.toThrow(new MissingParamError('loadUserByEmailRepository'))
+  //   })
 
-  test('should throw if LoadUserByEmailRepository has no load method', async () => {
-    const sut = new AuthUseCase({ loadUserByEmailRepository: {} })
-    const promise = sut.auth('any_email@mail.com', 'any_password')
-    expect(promise).rejects.toThrow(new InvalidParamError('loadUserByEmailRepository'))
-  })
+  //   test('should throw if LoadUserByEmailRepository has no load method', async () => {
+  //     const sut = new AuthUseCase({ loadUserByEmailRepository: {} })
+  //     const promise = sut.auth('any_email@mail.com', 'any_password')
+  //     expect(promise).rejects.toThrow(new InvalidParamError('loadUserByEmailRepository'))
+  //   })
 
   test('should return null if invalid email is provided', async () => {
     const { sut, loadUserByEmailRepositorySpy } = makeSut()
@@ -131,5 +158,63 @@ describe('Auth UseCase', () => {
     const accessToken = await sut.auth('valid_email@mail.com', 'valid_password')
     expect(accessToken).toBe(tokenGeneratorSpy.accessToken)
     expect(accessToken).toBeTruthy()
+  })
+
+  test('should throw if invalid dependencies is provided', async () => {
+    const invalid = {}
+    const suts = [].concat(
+      new AuthUseCase(),
+      new AuthUseCase({
+        loadUserByEmailRepository: null
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: invalid
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+        encrypter: null
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+        encrypter: invalid
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+        encrypter: makeEncrypter(),
+        tokenGenerator: null
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: makeLoadUserByEmailRepository(),
+        encrypter: makeEncrypter(),
+        tokenGenerator: invalid
+      })
+    )
+    for (const sut of suts) {
+      const promise = sut.auth('any_email@mail.com', 'any_password')
+      expect(promise).rejects.toThrow()
+    }
+  })
+
+  test('should throw if any dependency throws', async () => {
+    const loadUserByEmailRepository = makeLoadUserByEmailRepository()
+    const encrypter = makeEncrypter()
+    const suts = [].concat(
+      new AuthUseCase({
+        loadUserByEmailRepository: makeLoadUserByEmailRepositoryWithError()
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: loadUserByEmailRepository,
+        encrypter: makeEncrypterWithError()
+      }),
+      new AuthUseCase({
+        loadUserByEmailRepository: loadUserByEmailRepository,
+        encrypter,
+        tokenGenerator: makeTokenGeneratorWithError()
+      })
+    )
+    for (const sut of suts) {
+      const promise = sut.auth('any_email@mail.com', 'any_password')
+      expect(promise).rejects.toThrow()
+    }
   })
 })
