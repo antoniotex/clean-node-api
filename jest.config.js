@@ -138,7 +138,7 @@ module.exports = {
 
   // The test environment that will be used for testing
   // ==testEnvironment: "jest-environment-node",
-  testEnvironment: 'node'
+  testEnvironment: 'node',
 
   // Options that will be passed to the testEnvironment
   // testEnvironmentOptions: {},
@@ -192,4 +192,5 @@ module.exports = {
 
   // Whether to use watchman for file crawling
   // watchman: true,
+  preset: '@shelf/jest-mongodb'
 }
